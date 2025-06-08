@@ -22,6 +22,49 @@ export const generateUserPath = (userId, folderType, fileName) => {
 };
 
 /**
+ * Generates a folder path for S3 (ending with a slash)
+ * @param {string} userId - The ID of the user
+ * @param {string} folderType - The type of folder ('input' or 'output')
+ * @returns {string} - The folder path with trailing slash
+ */
+export const generateFolderPath = (userId, folderType) => {
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+  
+  if (!['input', 'output'].includes(folderType)) {
+    throw new Error('Folder type must be either "input" or "output"');
+  }
+  
+  return `${userId}/${folderType}/`;
+};
+
+/**
+ * Creates a folder in S3 by creating an empty object with a trailing slash
+ * @param {Object} Storage - The AWS Amplify Storage object
+ * @param {string} userId - The ID of the user
+ * @param {string} folderType - The type of folder ('input' or 'output')
+ * @returns {Promise} - Promise that resolves when the folder is created
+ */
+export const createFolder = async (Storage, userId, folderType) => {
+  if (!Storage) {
+    throw new Error('Storage object is required');
+  }
+  
+  const folderPath = generateFolderPath(userId, folderType);
+  
+  try {
+    // Create an empty object with a trailing slash to represent a folder
+    await Storage.put(folderPath, '', { level: 'protected' });
+    console.log(`Created folder: ${folderPath}`);
+    return folderPath;
+  } catch (error) {
+    console.error(`Error creating folder ${folderPath}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Formats file size in bytes to a human-readable format
  * @param {number} bytes - The size in bytes
  * @param {number} decimals - Number of decimal places (default: 2)
