@@ -1,4 +1,4 @@
-import { generateUserPath, formatBytes, extractFilenameFromPath, isUserPath } from './utils';
+import { generateUserPath, formatBytes, extractFilenameFromPath, isUserPath, generateFolderPath, createFolder } from './utils';
 
 describe('Utils', () => {
   describe('generateUserPath', () => {
@@ -18,6 +18,50 @@ describe('Utils', () => {
 
     it('should throw error if folderType is invalid', () => {
       expect(() => generateUserPath('user123', 'invalid', 'file.txt')).toThrow('Folder type must be either "input" or "output"');
+    });
+  });
+
+  describe('generateFolderPath', () => {
+    it('should generate correct path for input folder', () => {
+      const result = generateFolderPath('user123', 'input');
+      expect(result).toBe('user123/input/');
+    });
+
+    it('should generate correct path for output folder', () => {
+      const result = generateFolderPath('user123', 'output');
+      expect(result).toBe('user123/output/');
+    });
+
+    it('should throw error if userId is not provided', () => {
+      expect(() => generateFolderPath(null, 'input')).toThrow('User ID is required');
+    });
+
+    it('should throw error if folderType is invalid', () => {
+      expect(() => generateFolderPath('user123', 'invalid')).toThrow('Folder type must be either "input" or "output"');
+    });
+  });
+
+  describe('createFolder', () => {
+    it('should call Storage.put with correct parameters', async () => {
+      const mockStorage = {
+        put: jest.fn().mockResolvedValue({ key: 'user123/input/' })
+      };
+      
+      await createFolder(mockStorage, 'user123', 'input');
+      
+      expect(mockStorage.put).toHaveBeenCalledWith('user123/input/', '', { level: 'protected' });
+    });
+
+    it('should throw error if Storage is not provided', async () => {
+      await expect(createFolder(null, 'user123', 'input')).rejects.toThrow('Storage object is required');
+    });
+
+    it('should propagate errors from Storage.put', async () => {
+      const mockStorage = {
+        put: jest.fn().mockRejectedValue(new Error('S3 error'))
+      };
+      
+      await expect(createFolder(mockStorage, 'user123', 'input')).rejects.toThrow('S3 error');
     });
   });
 

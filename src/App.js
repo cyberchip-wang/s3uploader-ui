@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {useLocation, useNavigate, Routes, Route} from 'react-router-dom';
 import '@aws-amplify/ui-react/styles.css';
 import './App.css';
@@ -20,7 +20,7 @@ import {
 import {Amplify, Auth, Storage} from 'aws-amplify';
 import {Authenticator} from '@aws-amplify/ui-react';
 import FileExplorer from './FileExplorer';
-import { generateUserPath, formatBytes } from './utils';
+import { generateUserPath, formatBytes, createFolder } from './utils';
 
 import awsconfig from './aws-exports';
 
@@ -259,6 +259,8 @@ const Content = ({ user }) => {
 
 function App() {
     const [navigationOpen, setNavigationOpen] = useState(false);
+    const [folderCreationError, setFolderCreationError] = useState(null);
+    
     const navbarItemClick = e => {
         console.log(e);
         if (e.detail.id === 'signout') {
@@ -270,7 +272,27 @@ function App() {
 
     return (
         <Authenticator>
-            {({signOut, user}) => (
+            {({signOut, user}) => {
+                // Create input and output folders when user is authenticated
+                useEffect(() => {
+                    const createUserFolders = async () => {
+                        try {
+                            setFolderCreationError(null);
+                            // Create input folder
+                            await createFolder(Storage, user.username, 'input');
+                            // Create output folder
+                            await createFolder(Storage, user.username, 'output');
+                            console.log(`Created input and output folders for user: ${user.username}`);
+                        } catch (error) {
+                            console.error('Error creating folders:', error);
+                            setFolderCreationError('Failed to create user folders. Some features may not work properly.');
+                        }
+                    };
+                    
+                    createUserFolders();
+                }, [user.username]);
+                
+                return (
                 <>
                     <div id="navbar" style={{fontSize: 'body-l !important', position: 'sticky', top: 0, zIndex: 1002}}>
                         <TopNavigation
@@ -322,11 +344,18 @@ function App() {
                     </div>
                     <AppLayout
                         content={
-                            <Routes>
-                                <Route path="/" element={<Content user={user} />} />
-                                <Route path="/input" element={<FileExplorer user={user} folderType="input" />} />
-                                <Route path="/output" element={<FileExplorer user={user} folderType="output" />} />
-                            </Routes>
+                            <>
+                                {folderCreationError && (
+                                    <Alert type="error" dismissible onDismiss={() => setFolderCreationError(null)}>
+                                        {folderCreationError}
+                                    </Alert>
+                                )}
+                                <Routes>
+                                    <Route path="/" element={<Content user={user} />} />
+                                    <Route path="/input" element={<FileExplorer user={user} folderType="input" />} />
+                                    <Route path="/output" element={<FileExplorer user={user} folderType="output" />} />
+                                </Routes>
+                            </>
                         }
                         headerSelector='#navbar'
                         navigation={<ServiceNavigation/>}
