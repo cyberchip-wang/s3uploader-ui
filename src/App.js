@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import {useLocation, useNavigate, Routes, Route} from 'react-router-dom';
 import '@aws-amplify/ui-react/styles.css';
 import './App.css';
 import {
@@ -19,6 +19,8 @@ import {
 } from "@cloudscape-design/components";
 import {Amplify, Auth, Storage} from 'aws-amplify';
 import {Authenticator} from '@aws-amplify/ui-react';
+import FileExplorer from './FileExplorer';
+import { generateUserPath, formatBytes } from './utils';
 
 import awsconfig from './aws-exports';
 
@@ -52,6 +54,8 @@ const ServiceNavigation = () => {
             onFollow={onFollowHandler}
             items={[
                 {type: "link", text: "Upload", href: "/"},
+                {type: "link", text: "Input Files", href: "/input"},
+                {type: "link", text: "Output Files", href: "/output"},
                 {type: "divider"},
                 {
                     type: "link",
@@ -69,7 +73,7 @@ function formatBytes(a, b = 2, k = 1024) {
     return 0 === a ? "0 Bytes" : parseFloat((a / Math.pow(k, d)).toFixed(Math.max(0, b))) + " " + ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"][d];
 }
 
-const Content = () => {
+const Content = ({ user }) => {
     const hiddenFileInput = useRef(null);
     const [visibleAlert, setVisibleAlert] = useState(false);
     const [uploadList, setUploadList] = useState([]);
@@ -130,12 +134,14 @@ const Content = () => {
                 const id = uploadList[i].id;
                 progressBar.push(progressBarFactory(fileList[id]));
                 setHistoryCount(historyCount + 1);
-                uploadCompleted.push(Storage.put(fileList[id].name, fileList[id], {
+                
+                // Generate user-specific path for the file
+                const filePath = generateUserPath(user.username, 'input', fileList[id].name);
+                
+                uploadCompleted.push(Storage.put(filePath, fileList[id], {
                         progressCallback: progressBar[i],
                         level: "protected"
                     }).then(result => {
-                        // Trying to remove items from the upload list as they complete. Maybe not work correctly
-                        // setUploadList(uploadList.filter(item => item.label !== result.key));
                         console.log(`Completed the upload of ${result.key}`);
                     })
                 );
@@ -206,7 +212,7 @@ const Content = () => {
 
                         <FormField
                             label='Object Upload'
-                            description='Click on the Open button and select the files that you want to upload'
+                            description='Files will be uploaded to your personal input folder'
                         />
 
                         <SpaceBetween direction="horizontal" size="xs">
@@ -315,7 +321,13 @@ function App() {
                         />
                     </div>
                     <AppLayout
-                        content={<Content/>}
+                        content={
+                            <Routes>
+                                <Route path="/" element={<Content user={user} />} />
+                                <Route path="/input" element={<FileExplorer user={user} folderType="input" />} />
+                                <Route path="/output" element={<FileExplorer user={user} folderType="output" />} />
+                            </Routes>
+                        }
                         headerSelector='#navbar'
                         navigation={<ServiceNavigation/>}
                         navigationOpen={navigationOpen}

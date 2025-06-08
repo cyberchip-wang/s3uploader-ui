@@ -4,6 +4,13 @@
 ## About
 This repository contains the Open Source Software to demonstrate how to build a simple WebApp to users upload files to S3.  
 
+### Features
+- User authentication with Amazon Cognito
+- File upload to user-specific input folders
+- File browsing for input and output folders
+- User-specific access control (users can only access their own files)
+- File download functionality
+
 ### Built With
 
 - [AWS Amplify Framework](https://docs.amplify.aws/)
@@ -33,6 +40,8 @@ Add the storage component
 > Provide a label for this category or use the suggested one from the wizard.
 >
 > Select the option create/update from the list of actions
+>
+> **Important**: When configuring auth rules, make sure to select "Auth users only" and enable read/write permissions
 
 Add the application hosting
 `amplify hosting add`
@@ -60,6 +69,22 @@ display: none;
 ```
 > After this change you need to re-run `amplify publish`
 
+## File Structure
+
+The application organizes files in the following structure:
+
+- Each user has their own directory in S3 (based on their username)
+- Within each user directory, there are two subdirectories:
+  - `input/`: Where uploaded files are stored
+  - `output/`: Where result files are stored (can be populated by backend processes)
+- Users can only access files within their own directory
+
+## Usage
+
+1. **Sign in** to the application using your credentials
+2. **Upload files** using the Upload page - files will be stored in your personal input folder
+3. **Browse files** using the Input Files and Output Files navigation links
+4. **Download files** by selecting them in the file browser and clicking the Download button
 
 ### Prerequisites
 
